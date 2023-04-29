@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<!--
+Copyright (c) 2023 Orbital Circuits LLC
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+-->
+<html>
+  <head>
+    <title>Glove Controller</title>
+    <style>
+      body {
+        background-color: #f5f5f5;
+        font-family: Arial, sans-serif;
+        margin: 10px;
+        padding: 0px;
+        min-height: 100vh;
+        flex-grow: 1;
+      }
+
+      .header {
+        background-color: #f1f1f1;
+        text-align: left;
+        padding: 2px;
+      }
+
+      .version {
+        text-align: left;
+        color: #838383;
+        font-size: 12px;
+      }
+
+      .container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+        background-color: #ffffff;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        border-radius: 5px;
+      }
+
+      h1 {
+        text-align: left;
+        font-size: 20px;
+        margin: 0 auto;
+      }
+
+      h2 {
+        text-align: left;
+        font-size: 20px;
+        margin: 5px 0px 0px 0px;
+      }
+      h2.align_center {
+        text-align: center;
+      }
+      /* Form styles */
+      form {
+        max-width: 600px;
+        margin: 0 auto;
+      }
+
+      /* Label styles */
+      label {
+        display: inline-block;
+        margin-right: 5px;
+        margin-bottom: 10px;
+      }
+
+      /* Input styles */
+      input[type='number'] {
+        width: 75px;
+        padding: 5px;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+        font-family: sans-serif, Arial;
+        font-size: 18px;
+        text-align: center;
+      }
+
+      .radio-button input[type='radio'] {
+        display: none;
+      }
+
+      button, .radio-button label {
+        display: inline-block;
+        background-color: #dfdfdf;
+        padding: 3px 11px;
+        font-family: sans-serif, Arial;
+        font-size: 18px;
+        border: 1px solid #666;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background-color: #35c789;
+      }
+
+      .radio-button input[type='radio']:checked + label {
+        background-color: #35c789;
+      }
+
+      .status-wrapper {
+        justify-content: left;
+        width: 200px;
+        margin: 0 0;
+      }
+
+      .button.status-left, .button.status-right { /* These are for the status indicator bubbles */
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        border: none;
+        justify-content: center;
+        align-items: center;
+        color: #fff;
+        pointer-events: none;
+      }
+
+      .status-left {
+        background-color: #ccc;
+      }
+
+      .status-right {
+        background-color: #ccc;
+      }
+
+      .status-left.connected {
+        background-color: #222;
+      }
+
+      .status-right.connected {
+        background-color: #222;
+      }
+
+      .status-left.connected .status-text {
+        color: #4646ff;
+      }
+
+      .status-right.connected .status-text {
+        color: #99fc99;
+      }
+
+      .status-text {
+        font-size: 24px;
+        font-weight: bold;
+        text-transform: uppercase;
+      }
+
+      footer {
+        position: absolute;
+        bottom: 0;
+      }
+
+      #overlay {
+        position: fixed;
+        z-index: 999;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #000000cc;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      #dialog {
+        background-color: white;
+        padding: 20px;
+        border-radius: 10px;
+        max-width: 600px;
+        text-align: center;
+      }
+
+      #dialog h2 {
+        font-size: 24px;
+        margin-top: 0;
+      }
+
+      #dialog {
+        font-size: 16px;
+      }
+
+      #dialog p.warn {
+        font-size: 16px;
+        color: #a00000;
+      }
+
+      #dialog div.license {
+        font-size: 12px;
+        font-family: monospace;
+        margin-right: 5%;
+        margin-left: 5%;
+        text-align: left;
+      }
+
+      #dialog div.license.copyright {
+        text-align: center;
+      }
+
+      #dialog input[type='checkbox'] {
+        margin-right: 10px;
+      }
+
+      #dialog button {
+        background-color: #35c789;
+      }
+
+      #dialog button:disabled {
+        background-color: grey;
+        cursor: not-allowed;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="overlay">
+      <div id="dialog">
+        <h2 class="align_center">License and Terms</h2>
+        <p class="warn">
+          <b>This software is not intended to diagnose, treat, cure, or prevent
+            any disease or medical condition.</b>
+        </p>
+        <p><b>This software is licensed under the MIT License:</b></p>
+        <div class="license">
+          <div class="copyright">Copyright (c) 2023 Orbital Circuits LLC</div>
+          <p>
+            Permission is hereby granted, free of charge, to any person
+            obtaining a copy of this software and associated documentation files
+            (the "Software"), to deal in the Software without restriction,
+            including without limitation the rights to use, copy, modify, merge,
+            publish, distribute, sublicense, and/or sell copies of the Software,
+            and to permit persons to whom the Software is furnished to do so,
+            subject to the following conditions:
+          </p>
+          <p>
+            The above copyright notice and this permission notice shall be
+            included in all copies or substantial portions of the Software.
+          </p>
+          <p>
+            THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+            EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+            MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+            NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+            BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+            ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+            CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+            SOFTWARE.
+          </p>
+        </div>
+        <input type="checkbox" id="agree" name="agree" />
+        <label for="agree">I agree to the license and terms</label>
+        <button id="continue" disabled>Continue</button>
+      </div>
+    </div>
+    <h2>Fingers</h2>
+    <div class="radio-button">
+      <input type="radio" id="vibe_4" name="num_vibrators" value="4" />
+      <label for="vibe_4">4</label>
+      <input type="radio" id="vibe_5" name="num_vibrators" value="5" checked />
+      <label for="vibe_5">5</label>
+      <!--<input type="radio" id="vibe_6" name="num_vibrators" value="6">
+		<label for="vibe_6">6</label>-->
+    </div>
+
+    <h2>Symmetry</h2>
+    <div class="radio-button">
+      <input type="radio" id="mirror" name="symmetry" value="mirror" checked />
+      <label for="mirror">mirror</label>
+      <input type="radio" id="random" name="symmetry" value="random" />
+      <label for="random">random</label>
+    </div>
+
+    <h2>Intensity</h2>
+    <div>
+      <input
+        type="number"
+        id="intensity"
+        name="instensity"
+        min="10"
+        max="100"
+        value="80"
+        step="10"
+      />
+    </div>
+    <div style="display: none"> <!-- Hide the cycle fields to reduce clutter. -->
+      <h2>On Cycles</h2>
+      <div>
+        <input
+          type="number"
+          id="on-cycles"
+          name="on-cycles"
+          min="1"
+          max="10"
+          value="3"
+          step="1"
+        />
+      </div>
+
+      <h2>Off Cycles</h2>
+      <div>
+        <input
+          type="number"
+          id="off-cycles"
+          name="off-cycles"
+          min="0"
+          max="10"
+          value="2"
+          step="1"
+        />
+      </div>
+    </div>
+
+    <h2>Status</h2>
+    <button id="status-left" class="button status-left">
+      <span class="status-text">L</span>
+    </button>
+    <button id="status-right" class="button status-right">
+      <span class="status-text">R</span>
+    </button>
+
+    <div id="message-box"></div>
+    <footer>
+      <div class="version">bHaptics Controller v0.4 (2023-04-28)</div>
+    </footer>
+  </body>
+  <script>
+    // Elements for the License dialog
+    const overlay = document.getElementById('overlay')
+    const dialog = document.getElementById('dialog')
+    const agreeCheckbox = document.getElementById('agree')
+    const continueButton = document.getElementById('continue')
+
+    // Show the dialog overlay
+    overlay.style.display = 'flex'
+
+    // Disable the continue button until the user agrees to the terms of service
+    continueButton.disabled = true
+
+
+
+    // Handle the click event of the "Continue" button
+    continueButton.addEventListener('click', () => {
+      // Hide the dialog and overlay
+      dialog.style.display = 'none'
+      overlay.style.display = 'none'
+      system_tick() // Get the system going...
+    })
+
+    // Get references to the HTML elements
+    const statusLeft = document.getElementById('status-left')
+    const statusRight = document.getElementById('status-right')
+    const cycleOn = document.getElementById('on-cycles')
+    const cycleOff = document.getElementById('off-cycles')
+    const intensityInput = document.getElementById('intensity')
+    const messageBox = document.getElementById('message-box')
+
+    const durationMillis = 100 //milliseconds per vibrator pulse
+
+    var changesFlag = true
+    var timerSystem = null // For the periodic system_tick
+    var timerWebsocket = null // For retrying the websocket connection.
+
+    
+    // Enable the continue button if the user agrees to the terms of service
+    agreeCheckbox.addEventListener('change', () => {
+      continueButton.disabled = !agreeCheckbox.checked
+    })
+    
+    // Load settings from local storage:
+    var num_vibrators = parseInt(localStorage.getItem('num_vibrators')) || 5
+    document.querySelector(`input[name=num_vibrators][value="${num_vibrators}"]`).click()
+    var timerPeriod = Math.floor(666.6 / num_vibrators - durationMillis)
+
+    var symmetry = localStorage.getItem('symmetry') || 'mirror'
+    document.querySelector(`input[name=symmetry][value="${symmetry}"]`).click()
+
+    var intensity = parseInt(localStorage.getItem('intensity')) || 20
+    intensityInput.value = intensity
+
+    var on_cycles = parseInt(localStorage.getItem('on_cycles')) || 3
+    cycleOn.value = on_cycles
+
+    var off_cycles = parseInt(localStorage.getItem('off_cycles')) || 2
+    cycleOff.value = off_cycles
+
+    // One event handler for all fields that handles the change later.
+    document.addEventListener('click',
+      function (event) {
+        changesFlag = true // Tell the system_tick loop to handle any changes.
+      },
+      false
+    )
+
+    // Define global variables
+    const wsUrl = 'ws://localhost:15881/v2/feedbacks'
+    var active_keys = new Set([])
+    var connected_positions = new Set([])
+    var wsConnected = false
+    const output = document.getElementById('output')
+    let last_connected = {}
+    var ws = null
+
+    // Define WebSocket connection initialization function
+    function initialize() {
+      ws = new WebSocket(wsUrl)
+      ws.binaryType = 'arraybuffer'
+
+      try {
+        ws.onopen = function () {
+          wsConnected = true
+          //timerSystem = setTimeout(system_tick, timerPeriod) // Send update every 133ms (Commented out: don't start until user clicks "agree.")
+          messageBox.innerHTML = '<p>Connected.</p>'
+        }
+
+        ws.onmessage = function (evt) {
+          // Searching for strings is probably a lot faster than decoding the json?
+          if (evt.data.indexOf('"ConnectedDeviceCount":2') > 0) {
+            statusLeft.classList.add('connected')
+            statusRight.classList.add('connected')
+          } else if (evt.data.indexOf('"ConnectedPositions":["GloveR"]') > 0) {
+            statusLeft.classList.remove('connected')
+            statusRight.classList.add('connected')
+          } else if (evt.data.indexOf('"ConnectedPositions":["GloveL"]') > 0) {
+            statusLeft.classList.add('connected')
+            statusRight.classList.remove('connected')
+          } else {
+            statusLeft.classList.remove('connected')
+            statusRight.classList.remove('connected')
+          }
+        }
+
+        ws.onclose = function () {
+          clearInterval(timerSystem)
+          messageBox.innerHTML =
+            '<p>Websocket was closed. Make sure bHapticsPlayer is running.<br>Please refresh this page to try again.</p>'
+        }
+
+        ws.onerror = function () {
+          clearInterval(timerSystem)
+          messageBox.innerHTML =
+            '<p>A websocket error occurred. Make sure bHapticsPlayer is running.<br>Please refresh this page to try again.</p>'
+        }
+      } catch (e) {
+        messageBox.innerHTML = e
+      }
+    }
+
+    // Define function to submit data to the server
+    function submit(key, position, finger_index, intensity, duration_millis) {
+      let request = {
+        Submit: [
+          {
+            Type: 'frame',
+            Key: key,
+            Frame: {
+              position: position,
+              dotPoints: [{ index: finger_index, intensity: intensity }],
+              durationMillis: duration_millis
+            }
+          }
+        ]
+      }
+
+      let json_str = JSON.stringify(request)
+      if (ws != null && ws.readyState == WebSocket.OPEN) {
+        ws.send(json_str)
+      }
+    }
+
+    function shuffle(arr) {
+      // Fisher–Yates shuffle algorithm
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1))
+        ;[arr[i], arr[j]] = [arr[j], arr[i]]
+      }
+    }
+
+    {
+      let order_left = Array.from({ length: num_vibrators }, (v, i) => i) //Intialize with 0, 1, ... num_vibrators
+      let order_right = Array.from({ length: num_vibrators }, (v, i) => i) //Intialize with 0, 1, ... num_vibrators
+      let time_index = -1 // Initial condition so it'll read and apply the settings.
+      function system_tick() {
+        timerSystem = setTimeout(system_tick, timerPeriod) // Continue to repeat
+        if (time_index < on_cycles * order_left.length) {
+          // Currently in the "ON" cycle, need to output a vibration.
+          let index = time_index % order_left.length
+          if (symmetry == 'mirror') {
+            submit('KeyR', 'GloveR', order_left[index], intensity, durationMillis)
+            submit('KeyL', 'GloveL', order_left[index], intensity, durationMillis) // Use left for both gloves
+          } else {
+            submit('KeyR', 'GloveR', order_left[index], intensity, durationMillis)
+            submit('KeyL', 'GloveL', order_right[index], intensity, durationMillis)
+          }
+        }
+
+        // Increment time stamp
+        time_index += 1
+        time_index %= (on_cycles + off_cycles) * order_left.length
+
+        if (changesFlag && time_index == 0) {
+          // End of entire cycle and there were GUI presses.
+          num_vibrators = document.querySelector('input[name=num_vibrators]:checked').value
+		  localStorage.setItem('num_vibrators', num_vibrators)
+
+          symmetry = document.querySelector('input[name=symmetry]:checked').value
+          localStorage.setItem('symmetry', symmetry)
+
+          intensity = parseInt(intensityInput.value)
+          localStorage.setItem('intensity', intensity)
+
+          on_cycles = parseInt(cycleOn.value)
+          localStorage.setItem('on_cycles', on_cycles)
+
+          off_cycles = parseInt(cycleOff.value)
+          localStorage.setItem('off_cycles', off_cycles)
+
+          // Need to regenerate arrays in case numbers of fingers changed:
+          if (num_vibrators == 4) {
+            // If only 4 fingers, skip the thumb, not the pinky:
+            order_left = Array.from({ length: num_vibrators }, (v, i) => i + 1)
+            order_right = Array.from({ length: num_vibrators }, (v, i) => i + 1)
+          } else {
+            order_left = Array.from({ length: num_vibrators }, (v, i) => i)
+            order_right = Array.from({ length: num_vibrators }, (v, i) => i)
+          }
+          timerPeriod = Math.floor(666.6 / num_vibrators)
+          console.log(timerPeriod)
+          changesFlag = false // Clear flag until next user interaction
+        }
+
+        if (time_index % order_left.length == 0) {
+          // Shuffle finger order (this also happens during off periods, but that's okay)
+          shuffle(order_left)
+          shuffle(order_right)
+        }
+      }
+    }
+
+    // Call initialize function when page loads
+    window.onload = initialize
+  </script>
+</html>
